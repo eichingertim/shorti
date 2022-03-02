@@ -25,13 +25,13 @@ public class ShortUrlController {
 
     @GetMapping("/all")
     public ResponseEntity<List<ShortUrl>> getAllShortUrls() {
-        log.debug("getAllShortUrls");
+        log.info("getAllShortUrls");
         return ResponseEntity.ok(service.getAllUrls());
     }
 
     @GetMapping("/{shortUrl}")
     public ResponseEntity<?> getOriginUrl(@PathVariable String shortUrl, HttpServletResponse response) {
-        log.debug("getOriginUrl");
+        log.info("getOriginUrl");
         try {
             response.sendRedirect(service.getOriginUrl(shortUrl));
             return null;
@@ -53,15 +53,21 @@ public class ShortUrlController {
     }
 
     @PatchMapping("/{urlId}")
-    public ResponseEntity<ShortUrl> updateShortUrl(@PathVariable String urlId, @RequestParam String newOriginUrl) {
-        log.debug("updateShortUrl");
-        return ResponseEntity.ok().build();
+    public ResponseEntity updateShortUrl(@PathVariable String urlId, @RequestBody ShortUrlRequest request) {
+        log.info("updateShortUrl");
+        try {
+            ShortUrl urlObj = service.updateShortUrl(urlId, request.getOriginUrl());
+            return ResponseEntity.ok(urlObj);
+        } catch (ShortUrlException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{urlId}")
-    public ResponseEntity<ShortUrl> deleteShortUrl(@PathVariable String urlId) {
+    public ResponseEntity deleteShortUrl(@PathVariable String urlId) {
         log.debug("deleteShortUrl");
-        return ResponseEntity.ok().build();
+        service.deleteShortUrl(urlId);
+        return ResponseEntity.ok("Successfully deleted");
     }
 
 }

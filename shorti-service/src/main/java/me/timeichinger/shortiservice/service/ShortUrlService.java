@@ -11,7 +11,7 @@ public interface ShortUrlService {
     List<ShortUrl> getAllUrls();
     ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr) throws ShortUrlException;
     String getOriginUrl(String shortUrl);
-    String updateShortUrl(String urlId, String newOriginId);
-    String deleteShortUrl(String urlId);
+    ShortUrl updateShortUrl(String urlId, String newOriginId) throws ShortUrlException;
+    void deleteShortUrl(String urlId);
 
 }
