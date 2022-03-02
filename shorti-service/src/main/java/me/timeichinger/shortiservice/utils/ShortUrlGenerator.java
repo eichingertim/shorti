@@ -1,6 +1,6 @@
 package me.timeichinger.shortiservice.utils;
 
-import me.timeichinger.shortiservice.database.repositories.ShortUrlRepository;
+import me.timeichinger.shortiservice.repositories.ShortUrlRepository;
 import me.timeichinger.shortiservice.model.ShortUrl;
 import me.timeichinger.shortiservice.utils.error.ErrorCode;
 import me.timeichinger.shortiservice.utils.error.ShortUrlException;

@@ -1,4 +1,4 @@
-package me.timeichinger.shortiservice.database.repositories;
+package me.timeichinger.shortiservice.repositories;
 
 
 import me.timeichinger.shortiservice.model.ShortUrl;
