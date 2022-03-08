@@ -1,4 +1,4 @@
-package me.timeichinger.shortiservice.utils;
+package me.timeichinger.shortiservice.utils.requests;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

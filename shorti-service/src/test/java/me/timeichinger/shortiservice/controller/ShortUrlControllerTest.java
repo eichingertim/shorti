@@ -3,7 +3,6 @@ package me.timeichinger.shortiservice.controller;
 import com.google.gson.JsonObject;
 import me.timeichinger.shortiservice.model.ShortUrl;
 import me.timeichinger.shortiservice.utils.ShortUrlList;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

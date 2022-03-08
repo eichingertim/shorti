@@ -9,9 +9,9 @@ import java.util.List;
 public interface ShortUrlService {
 
     List<ShortUrl> getAllUrls();
-    ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr) throws ShortUrlException;
+    ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr, @Nullable String userId) throws ShortUrlException;
     String getOriginUrl(String shortUrl);
-    ShortUrl updateShortUrl(String urlId, String newOriginId) throws ShortUrlException;
-    void deleteShortUrl(String urlId);
+    ShortUrl updateShortUrl(String urlId, String newOriginId, @Nullable String userId) throws ShortUrlException;
+    void deleteShortUrl(String urlId, String userId) throws ShortUrlException;
 
 }

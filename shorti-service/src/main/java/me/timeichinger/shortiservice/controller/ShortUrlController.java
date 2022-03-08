@@ -1,19 +1,19 @@
 package me.timeichinger.shortiservice.controller;
 
-import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import me.timeichinger.shortiservice.model.ShortUrl;
 import me.timeichinger.shortiservice.service.ShortUrlService;
-import me.timeichinger.shortiservice.utils.ShortUrlRequest;
+import me.timeichinger.shortiservice.utils.requests.ShortUrlRequest;
 import me.timeichinger.shortiservice.utils.error.ShortUrlException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.Objects;
 
 @Slf4j
 @RestController
@@ -42,10 +42,15 @@ public class ShortUrlController {
     }
 
     @PostMapping(value = "/shortUrl",consumes = "application/json")
-    public ResponseEntity createShortUrl(@RequestBody ShortUrlRequest request, @RequestParam(required = false) String shortUrlStr) {
+    public ResponseEntity createShortUrl(@RequestBody ShortUrlRequest request, @RequestParam(required = false) String shortUrlStr, HttpServletRequest servletRequest) {
+
         log.info("createShortUrl");
         try {
-            ShortUrl urlObj = service.createShortUrl(request.getOriginUrl(), shortUrlStr);
+            String userId = String.valueOf(servletRequest.getAttribute("user-id"));
+            ShortUrl urlObj = service.createShortUrl(request.getOriginUrl(), shortUrlStr, Objects.equals(userId, "null") ? null : userId);
+            if (urlObj.getCreator() != null) {
+                urlObj.getCreator().setPassword("xxx");
+            }
             return ResponseEntity.ok(urlObj);
         } catch (ShortUrlException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getMessage());
@@ -53,10 +58,14 @@ public class ShortUrlController {
     }
 
     @PatchMapping("/{urlId}")
-    public ResponseEntity updateShortUrl(@PathVariable String urlId, @RequestBody ShortUrlRequest request) {
+    public ResponseEntity updateShortUrl(@PathVariable String urlId, @RequestBody ShortUrlRequest request, HttpServletRequest servletRequest) {
         log.info("updateShortUrl");
         try {
-            ShortUrl urlObj = service.updateShortUrl(urlId, request.getOriginUrl());
+            String userId = String.valueOf(servletRequest.getAttribute("user-id"));
+            ShortUrl urlObj = service.updateShortUrl(urlId, request.getOriginUrl(), Objects.equals(userId, "null") ? null : userId);
+            if (urlObj.getCreator() != null) {
+                urlObj.getCreator().setPassword("xxx");
+            }
             return ResponseEntity.ok(urlObj);
         } catch (ShortUrlException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getMessage());
@@ -64,10 +73,15 @@ public class ShortUrlController {
     }
 
     @DeleteMapping("/{urlId}")
-    public ResponseEntity deleteShortUrl(@PathVariable String urlId) {
+    public ResponseEntity deleteShortUrl(@PathVariable String urlId, HttpServletRequest servletRequest) {
         log.debug("deleteShortUrl");
-        service.deleteShortUrl(urlId);
-        return ResponseEntity.ok("Successfully deleted");
+        String userId = String.valueOf(servletRequest.getAttribute("user-id"));
+        try {
+            service.deleteShortUrl(urlId, Objects.equals(userId, "null") ? null : userId);
+            return ResponseEntity.ok("Successfully deleted");
+        } catch (ShortUrlException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getMessage());
+        }
     }
 
 }

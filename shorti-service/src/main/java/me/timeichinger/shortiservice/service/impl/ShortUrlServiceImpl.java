@@ -1,8 +1,10 @@
 package me.timeichinger.shortiservice.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import me.timeichinger.shortiservice.model.User;
 import me.timeichinger.shortiservice.repositories.ShortUrlRepository;
 import me.timeichinger.shortiservice.model.ShortUrl;
+import me.timeichinger.shortiservice.repositories.UserRepository;
 import me.timeichinger.shortiservice.service.ShortUrlService;
 import me.timeichinger.shortiservice.utils.ShortUrlGenerator;
 import me.timeichinger.shortiservice.utils.error.ErrorCode;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -20,7 +23,10 @@ import java.util.Optional;
 public class ShortUrlServiceImpl implements ShortUrlService {
 
     @Autowired
-    ShortUrlRepository repository;
+    private ShortUrlRepository repository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public List<ShortUrl> getAllUrls() {
@@ -30,9 +36,15 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     }
 
     @Override
-    public ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr) throws ShortUrlException {
+    public ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr, @Nullable String userId) throws ShortUrlException {
         log.info("createShortUrl {} {}", originUrl, shortUrlStr);
         ShortUrl shortUrl = ShortUrlGenerator.shortenUrl(originUrl, shortUrlStr, repository);
+
+        if (userId != null) {
+            Optional<User> user = userRepository.findById(userId);
+            user.ifPresent(shortUrl::setCreator);
+        }
+
         log.info("createShortUrl {}", shortUrl);
         return repository.save(shortUrl);
     }
@@ -44,18 +56,38 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     }
 
     @Override
-    public ShortUrl updateShortUrl(String urlId, String newOriginId) throws ShortUrlException {
+    public ShortUrl updateShortUrl(String urlId, String newOriginId, @Nullable String userId) throws ShortUrlException {
         Optional<ShortUrl> urlFromDB = repository.findById(urlId);
         if (urlFromDB.isEmpty()) throw new ShortUrlException(ErrorCode.SHORT_URL_NOT_FOUND);
 
         ShortUrl shortUrl = urlFromDB.get();
+
+        if (userId != null) {
+            Optional<User> user = userRepository.findById(userId);
+            if (user.isPresent() && !Objects.equals(user.get(),shortUrl.getCreator())) {
+                throw new ShortUrlException(ErrorCode.NOT_ALLOWED_TO_EDIT_THIS_SHORT_URL);
+            }
+        }
+
         shortUrl.setOriginUrl(newOriginId);
 
         return repository.save(shortUrl);
     }
 
     @Override
-    public void deleteShortUrl(String urlId) {
+    public void deleteShortUrl(String urlId, String userId) throws ShortUrlException {
+
+        Optional<ShortUrl> urlFromDB = repository.findById(urlId);
+        if (urlFromDB.isEmpty()) throw new ShortUrlException(ErrorCode.SHORT_URL_NOT_FOUND);
+
+        ShortUrl shortUrl = urlFromDB.get();
+
+        if (userId != null) {
+            Optional<User> user = userRepository.findById(userId);
+            if (user.isPresent() && !Objects.equals(user.get(),shortUrl.getCreator())) {
+                throw new ShortUrlException(ErrorCode.NOT_ALLOWED_TO_EDIT_THIS_SHORT_URL);
+            }
+        }
         repository.deleteById(urlId);
     }
 }
