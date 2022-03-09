@@ -1,7 +1,9 @@
 package me.timeichinger.shortiservice.controller;
 
 import com.google.gson.JsonObject;
+import lombok.Getter;
 import me.timeichinger.shortiservice.model.ShortUrl;
+import me.timeichinger.shortiservice.model.User;
 import me.timeichinger.shortiservice.utils.ShortUrlList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,9 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,13 +25,16 @@ public class ShortUrlControllerTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    private final HttpHeaders headers = new HttpHeaders();
+
     @BeforeEach
-    public void setup() {
+    void setup() {
         restTemplate.getRestTemplate().setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        signUpAndLoginUser();
     }
 
     @Test
-     void createShortUrlWithPredefinedShortStringShouldReturnShortUrl() {
+     void createShortUrlWithAuthWithPredefinedShortStringShouldReturnShortUrl() {
         String originUrl = "https://google.com";
         String shortUrlStr = "google";
 
@@ -39,16 +43,35 @@ public class ShortUrlControllerTest {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("originUrl", originUrl);
 
-        ShortUrl url = this.restTemplate.postForObject(request, jsonObject, ShortUrl.class);
+        HttpEntity<JsonObject> entity = new HttpEntity<>(jsonObject, headers);
+        ShortUrl url = restTemplate.postForObject(request, entity, ShortUrl.class);
 
         assertThat(url.getId()).isNotNull();
         assertThat(url.getOriginUrl()).isEqualTo(originUrl);
         assertThat(url.getShortUrl()).isEqualTo(shortUrlStr);
         assertThat(url.getCreatedAt()).isNotNull();
+        assertThat(url.getCreator()).isNotNull();
     }
 
     @Test
-    void createShortUrlShouldReturnShortUrl() {
+    void createShortUrlWithoutAuthWithPredefinedShortStringShouldReturn400() {
+        String originUrl = "https://google.com";
+        String shortUrlStr = "google";
+
+        String request = String.format("http://localhost:%d/shortUrl?shortUrlStr=%s",port, shortUrlStr);
+
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("originUrl", originUrl);
+
+        HttpEntity<JsonObject> requestEntity = new HttpEntity<>(jsonObject);
+        ResponseEntity<String> lol = restTemplate.exchange(request, HttpMethod.POST,requestEntity, String.class);
+
+        assertThat(lol.getStatusCode().is4xxClientError()).isEqualTo(true);
+
+    }
+
+    @Test
+    void createShortUrlWithAuthShouldReturnShortUrl() {
         String originUrl = "https://google.com";
 
         String request = String.format("http://localhost:%d/shortUrl",port);
@@ -56,12 +79,32 @@ public class ShortUrlControllerTest {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("originUrl", originUrl);
 
-        ShortUrl url = this.restTemplate.postForObject(request, jsonObject, ShortUrl.class);
+        HttpEntity<JsonObject> entity = new HttpEntity<>(jsonObject, headers);
+        ShortUrl url = restTemplate.postForObject(request, entity, ShortUrl.class);
 
         assertThat(url.getId()).isNotNull();
         assertThat(url.getOriginUrl()).isEqualTo(originUrl);
         assertThat(url.getShortUrl()).isNotNull();
         assertThat(url.getCreatedAt()).isNotNull();
+        assertThat(url.getCreator()).isNotNull();
+    }
+
+    @Test
+    void createShortUrlWithoutAuthShouldReturnShortUrl() {
+        String originUrl = "https://google.com";
+
+        String request = String.format("http://localhost:%d/shortUrl",port);
+
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("originUrl", originUrl);
+
+        ShortUrl url = restTemplate.postForObject(request, jsonObject, ShortUrl.class);
+
+        assertThat(url.getId()).isNotNull();
+        assertThat(url.getOriginUrl()).isEqualTo(originUrl);
+        assertThat(url.getShortUrl()).isNotNull();
+        assertThat(url.getCreatedAt()).isNotNull();
+        assertThat(url.getCreator()).isNull();
     }
 
     @Test
@@ -72,7 +115,8 @@ public class ShortUrlControllerTest {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("originUrl", newOriginUrl);
 
-        ShortUrl updatedUrl = this.restTemplate.patchForObject(updateRequest, jsonObject, ShortUrl.class);
+        HttpEntity<JsonObject> entity = new HttpEntity<>(jsonObject, headers);
+        ShortUrl updatedUrl = restTemplate.patchForObject(updateRequest, entity, ShortUrl.class);
 
         assertThat(updatedUrl.getId()).isNotNull();
         assertThat(updatedUrl.getOriginUrl()).isEqualTo(newOriginUrl);
@@ -84,18 +128,39 @@ public class ShortUrlControllerTest {
         ShortUrl createdUrl = shortenUrl();
 
         String getAllRequest = String.format("http://localhost:%d/all", port);
-        List<ShortUrl> shortUrlListBefore = this.restTemplate.getForObject(getAllRequest, ShortUrlList.class);
+        HttpEntity entity = new HttpEntity<JsonObject>(headers);
 
-        assertThat(shortUrlListBefore.size()).isEqualTo(1);
+        ResponseEntity<ShortUrlList> resBefore = restTemplate.exchange(
+                getAllRequest,
+                HttpMethod.GET,
+                entity,
+                ShortUrlList.class
+        );
 
-        String updateRequest = String.format("http://localhost:%d/%s", port, createdUrl.getId());
-        this.restTemplate.delete(updateRequest);
+        assertThat(resBefore.getBody()).isNotNull();
+        assertThat(resBefore.getBody().size()).isGreaterThan(0);
+        int currSize = resBefore.getBody().size();
 
-        List<ShortUrl> shortUrlListAfter = this.restTemplate.getForObject(getAllRequest, ShortUrlList.class);
-        assertThat(shortUrlListAfter.size()).isEqualTo(0);
+        String deleteReq = String.format("http://localhost:%d/%s", port, createdUrl.getId());
+        restTemplate.exchange(
+                deleteReq,
+                HttpMethod.DELETE,
+                entity,
+                String.class
+        );
+
+        ResponseEntity<ShortUrlList> resAfter = restTemplate.exchange(
+                getAllRequest,
+                HttpMethod.GET,
+                entity,
+                ShortUrlList.class
+        );
+
+        assertThat(resAfter.getBody()).isNotNull();
+        assertThat(resAfter.getBody().size()).isEqualTo(currSize-1);
     }
 
-    public ShortUrl shortenUrl() {
+    private ShortUrl shortenUrl() {
         String originUrl = "https://google.com";
 
         String request = String.format("http://localhost:%d/shortUrl",port);
@@ -103,7 +168,41 @@ public class ShortUrlControllerTest {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("originUrl", originUrl);
 
-        return this.restTemplate.postForObject(request, jsonObject, ShortUrl.class);
+        HttpEntity entity = new HttpEntity<>(jsonObject, headers);
+        return restTemplate.postForObject(request, entity, ShortUrl.class);
     }
+
+    private void signUpAndLoginUser() {
+        JsonObject userSignUp = new JsonObject();
+        userSignUp.addProperty("email", "test@mail.com");
+        userSignUp.addProperty("username", "testuser123");
+        userSignUp.addProperty("password", "password123");
+
+        String signUpRequest = String.format("http://localhost:%d/sign-up",port);
+        try {
+            restTemplate.postForObject(signUpRequest, userSignUp, User.class);
+        } catch (Exception e) {
+            System.out.println("User already created");
+        }
+
+
+        JsonObject userLoginRequest = new JsonObject();
+        userLoginRequest.addProperty("username", "testuser123");
+        userLoginRequest.addProperty("password", "password123");
+
+        String loginRequest = String.format("http://localhost:%d/sign-in",port);
+        TokenWrapper wrapper = restTemplate.postForObject(loginRequest, userLoginRequest, TokenWrapper.class);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + wrapper.getJwtToken());
+
+    }
+
+    @Getter
+    static
+    class TokenWrapper {
+        private String jwtToken;
+    }
+
+
 
 }

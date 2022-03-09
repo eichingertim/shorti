@@ -36,8 +36,24 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     }
 
     @Override
+    public List<ShortUrl> getShortUrlsForAuthenticatedUser(@Nullable String userId) throws ShortUrlException {
+        if (userId == null) {
+            throw new ShortUrlException(ErrorCode.NOT_ALLOWED_TO_VIEW);
+        }
+
+        List<ShortUrl> urlObjects = new ArrayList<>();
+        repository.findByUser(userId).iterator().forEachRemaining(urlObjects::add);
+        return urlObjects;
+    }
+
+    @Override
     public ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr, @Nullable String userId) throws ShortUrlException {
         log.info("createShortUrl {} {}", originUrl, shortUrlStr);
+
+        if (shortUrlStr != null && userId == null) {
+            throw new ShortUrlException(ErrorCode.NOT_ALLOWED_TO_CREATE_CUSTOM_SHORTS);
+        }
+
         ShortUrl shortUrl = ShortUrlGenerator.shortenUrl(originUrl, shortUrlStr, repository);
 
         if (userId != null) {

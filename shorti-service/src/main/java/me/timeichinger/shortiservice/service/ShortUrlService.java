@@ -9,6 +9,7 @@ import java.util.List;
 public interface ShortUrlService {
 
     List<ShortUrl> getAllUrls();
+    List<ShortUrl> getShortUrlsForAuthenticatedUser(@Nullable String userId) throws ShortUrlException;
     ShortUrl createShortUrl(String originUrl, @Nullable String shortUrlStr, @Nullable String userId) throws ShortUrlException;
     String getOriginUrl(String shortUrl);
     ShortUrl updateShortUrl(String urlId, String newOriginId, @Nullable String userId) throws ShortUrlException;

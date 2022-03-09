@@ -3,8 +3,8 @@ package me.timeichinger.shortiservice.controller;
 import lombok.extern.slf4j.Slf4j;
 import me.timeichinger.shortiservice.model.ShortUrl;
 import me.timeichinger.shortiservice.service.ShortUrlService;
-import me.timeichinger.shortiservice.utils.requests.ShortUrlRequest;
 import me.timeichinger.shortiservice.utils.error.ShortUrlException;
+import me.timeichinger.shortiservice.utils.requests.ShortUrlRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,9 +24,17 @@ public class ShortUrlController {
     ShortUrlService service;
 
     @GetMapping("/all")
-    public ResponseEntity<List<ShortUrl>> getAllShortUrls() {
-        log.info("getAllShortUrls");
-        return ResponseEntity.ok(service.getAllUrls());
+    public ResponseEntity<?> getAllShortUrlsForUser(HttpServletRequest request) {
+        try {
+            String userId = String.valueOf(request.getAttribute("user-id"));
+            List<ShortUrl> urls = service.getShortUrlsForAuthenticatedUser(userId);
+            if (!urls.isEmpty()) {
+                urls.iterator().forEachRemaining(shortUrl -> shortUrl.getCreator().setPassword("xxx"));
+            }
+            return ResponseEntity.ok(urls);
+        } catch (ShortUrlException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getMessage());
+        }
     }
 
     @GetMapping("/{shortUrl}")
