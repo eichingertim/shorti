@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,19 +39,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUser(String id) throws ShortUrlException {
+        if (id == null) {
+            throw new ShortUrlException(ErrorCode.NOT_ALLOWED_TO_EDIT_USER);
+        }
+
         Optional<User> user = userRepository.findById(id);
         if (user.isEmpty()) throw new ShortUrlException(ErrorCode.USER_NOT_FOUND);
         return user.get();
     }
 
     @Override
-    public User updateUser(String id, User user) throws ShortUrlException {
-        return null;
-    }
+    public void deleteUser(String id) throws ShortUrlException {
 
-    @Override
-    public void deleteShortUrl(String id) {
+        if (id == null) {
+            throw new ShortUrlException(ErrorCode.NOT_ALLOWED_TO_EDIT_USER);
+        }
 
+        userRepository.deleteById(id);
     }
 
 }

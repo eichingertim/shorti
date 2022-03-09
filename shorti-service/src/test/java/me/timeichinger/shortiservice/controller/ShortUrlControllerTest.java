@@ -160,6 +160,25 @@ public class ShortUrlControllerTest {
         assertThat(resAfter.getBody().size()).isEqualTo(currSize-1);
     }
 
+    @Test
+    void getAllShortUrlsForUser() {
+        ShortUrl createdUrl = shortenUrl();
+
+        String getAllRequest = String.format("http://localhost:%d/all", port);
+        HttpEntity entity = new HttpEntity<JsonObject>(headers);
+
+        ResponseEntity<ShortUrlList> resBefore = restTemplate.exchange(
+                getAllRequest,
+                HttpMethod.GET,
+                entity,
+                ShortUrlList.class
+        );
+
+        assertThat(resBefore.getBody()).isNotNull();
+        assertThat(resBefore.getBody().size()).isGreaterThan(0);
+        resBefore.getBody().forEach(url -> assertThat(url.getCreator().getUsername()).isEqualTo("testuser123"));
+    }
+
     private ShortUrl shortenUrl() {
         String originUrl = "https://google.com";
 
