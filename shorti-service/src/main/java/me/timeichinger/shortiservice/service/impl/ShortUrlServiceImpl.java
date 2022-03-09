@@ -68,6 +68,8 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     @Override
     public String getOriginUrl(String shortUrl) {
         ShortUrl url = repository.findByShortUrl(shortUrl);
+        url.setNumCalls(url.getNumCalls() + 1);
+        repository.save(url);
         return url.getOriginUrl();
     }
 
