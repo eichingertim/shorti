@@ -42,7 +42,7 @@ public class ShortUrlController {
         log.info("getOriginUrl");
         try {
             response.sendRedirect(service.getOriginUrl(shortUrl));
-            return null;
+            return ResponseEntity.ok().build();
         } catch (IOException e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
